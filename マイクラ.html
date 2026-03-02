@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Craft Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        /* アイテム欄のUI */
+        #hotbar {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 5px; background: rgba(0,0,0,0.5);
+            padding: 10px; border: 2px solid #fff;
+        }
+        .slot { width: 40px; height: 40px; border: 1px solid #ccc; }
+        .selected { border: 3px solid yellow; }
+        
+        /* ジャンプボタン（スマホ想定） */
+        #jump-btn {
+            position: absolute; right: 30px; bottom: 30px;
+            width: 80px; height: 80px; background: rgba(255,255,255,0.3);
+            border-radius: 50%; text-align: center; line-height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div id="hotbar">
+        <div class="slot selected" style="background: green;"></div> <div class="slot" style="background: brown;"></div> <div class="slot" style="background: gray;"></div> </div>
+    <div id="jump-btn">JUMP</div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { PointerLockControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/PointerLockControls.js';
+
+        // --- 基本設定 ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // 空の色
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- 地面の生成（草を生やす） ---
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const grassMaterial = new THREE.MeshStandardMaterial({ color: 0x228b22 });
+        
+        for(let x = -10; x < 10; x++) {
+            for(let z = -10; z < 10; z++) {
+                const cube = new THREE.Mesh(geometry, grassMaterial);
+                cube.position.set(x, 0, z);
+                scene.add(cube);
+            }
+        }
+
+        // --- 光源 ---
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(10, 20, 10);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // --- 操作設定 ---
+        const controls = new PointerLockControls(camera, document.body);
+        document.body.addEventListener('click', () => controls.lock());
+
+        // --- 掘る・置くのロジック ---
+        window.addEventListener('mousedown', (e) => {
+            if (!controls.isLocked) return;
+            
+            // Raycasterを使ってクリックした先のブロックを特定
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+
+            if (intersects.length > 0) {
+                if (e.button === 0) { // 左クリックで掘る
+                    scene.remove(intersects[0].object);
+                } else if (e.button === 2) { // 右クリックで置く
+                    // 隣接する位置に新しいブロックを作成
+                }
+            }
+        });
+
+        // 描画ループ
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
